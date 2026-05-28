@@ -24,27 +24,31 @@ logging.basicConfig(
         logging.FileHandler("bot.log", encoding="utf-8"),
     ],
 )
+
 logger = logging.getLogger(__name__)
 
 
 async def main():
     logger.info("🚀 Bot ishga tushmoqda...")
 
-    # Database
+    # Database init
     await init_db()
     logger.info("✅ Database tayyor")
 
-    # Bot va Dispatcher
+    # Bot
     bot = Bot(
         token=config.BOT_TOKEN,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
+
+    # Dispatcher
     dp = Dispatcher(storage=MemoryStorage())
 
-    # Routerlarni ulash
-    dp.include_router(setup_routers())
+    # Routers (IMPORTANT FIX - only once)
+    router = setup_routers()
+    dp.include_router(router)
 
-    # Webhook'ni o'chirish (polling uchun)
+    # webhook clear
     await bot.delete_webhook(drop_pending_updates=True)
 
     me = await bot.get_me()
@@ -52,15 +56,20 @@ async def main():
     logger.info(f"👑 Adminlar: {config.ADMIN_IDS}")
 
     try:
-        await dp.start_polling(bot)
+        # 🔥 IMPORTANT FIX FOR STREAMLIT + AIogram
+        await dp.start_polling(bot, handle_signals=False)
+
     finally:
         await bot.session.close()
 
 
 if __name__ == "__main__":
     try:
+        # 🔥 STREAMLIT FIX: event loop safe run
         asyncio.run(main())
+
     except (KeyboardInterrupt, SystemExit):
         logger.info("👋 Bot to'xtatildi")
+
     except Exception as e:
         logger.exception(f"❌ Kritik xato: {e}")
