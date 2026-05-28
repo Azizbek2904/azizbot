@@ -1,0 +1,18 @@
+# virtual environment
+venv/
+.env/
+env/
+idea/
+# Python cache
+__pycache__/
+*.pyc
+
+# Streamlit cache
+.streamlit/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# logs
+*.log
