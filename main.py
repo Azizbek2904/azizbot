@@ -1,6 +1,3 @@
-"""
-Bot asosiy fayli — ishga tushirish nuqtasi.
-"""
 import asyncio
 import logging
 import sys
@@ -15,13 +12,11 @@ from database import init_db
 from handlers import setup_routers
 
 
-# ──────────── LOGGING ────────────
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler("bot.log", encoding="utf-8"),
     ],
 )
 
@@ -31,45 +26,45 @@ logger = logging.getLogger(__name__)
 async def main():
     logger.info("🚀 Bot ishga tushmoqda...")
 
-    # Database init
     await init_db()
     logger.info("✅ Database tayyor")
 
-    # Bot
     bot = Bot(
         token=config.BOT_TOKEN,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
 
-    # Dispatcher
     dp = Dispatcher(storage=MemoryStorage())
 
-    # Routers (IMPORTANT FIX - only once)
-    router = setup_routers()
-    dp.include_router(router)
+    # ROUTERS FIX
+    dp.include_router(setup_routers())
 
-    # webhook clear
     await bot.delete_webhook(drop_pending_updates=True)
 
     me = await bot.get_me()
-    logger.info(f"✅ Bot @{me.username} (ID: {me.id}) ishga tushdi!")
-    logger.info(f"👑 Adminlar: {config.ADMIN_IDS}")
+    logger.info(f"✅ Bot @{me.username} ishga tushdi!")
 
     try:
-        # 🔥 IMPORTANT FIX FOR STREAMLIT + AIogram
+        # STREAMLIT SAFE MODE
         await dp.start_polling(bot, handle_signals=False)
+
+    except Exception as e:
+        logger.exception(f"Bot error: {e}")
 
     finally:
         await bot.session.close()
 
 
-if __name__ == "__main__":
+# 🔥 STREAMLIT SAFE RUNNER
+def run_bot():
     try:
-        # 🔥 STREAMLIT FIX: event loop safe run
-        asyncio.run(main())
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
 
-    except (KeyboardInterrupt, SystemExit):
-        logger.info("👋 Bot to'xtatildi")
+    return loop.run_until_complete(main())
 
-    except Exception as e:
-        logger.exception(f"❌ Kritik xato: {e}")
+
+if __name__ == "__main__":
+    run_bot()
